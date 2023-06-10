@@ -1,41 +1,49 @@
+import os
+import pickle
+import time
+import sys
+sys.path.append('External-Attention-pytorch')
+from model.attention.CBAM import CBAMBlock
+import torch
+
 import cv2 as cv
 import numpy as np
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-import tensorflow as tf
-from sklearn.preprocessing import LabelEncoder
-import pickle
 from keras_facenet import FaceNet
-import time
+import torch
+from sklearn.preprocessing import LabelEncoder
 
 # Define a threshold value for face recognition
-threshold = 0.7
+threshold = 0.54
 
 # Load the saved SVM model
-with open("C:\\Users\\icedl\\Dropbox\\PC\\Downloads\\Facenet_MTCNN_SVM [With Augmentation]\\venv\\svm_model_160x160.pkl", 'rb') as f:
+with open("svc_model.pkl", 'rb') as f:
     model = pickle.load(f)
+    
+# Load the saved cbam
+with open("cbam.pkl", 'rb') as f:
+    cbam = pickle.load(f)
 
 # Read the pre-trained face embedding model
 facenet = FaceNet()
 
 # Load the saved face embeddings and labels
-faces_embeddings = np.load("C:\\Users\\icedl\\Dropbox\\PC\\Downloads\\Facenet_MTCNN_SVM [With Augmentation]\\venv\\faces_embeddings_done_4classes.npz")
+faces_embeddings = np.load("faces_embeddings_done_4classes.npz")
 X, Y = faces_embeddings['arr_0'], faces_embeddings['arr_1']
 encoder = LabelEncoder()
 encoder.fit(Y)
 
 # Read the Haar cascade classifier for face detection
-haarcascade = cv.CascadeClassifier("C:\\Users\\icedl\\Dropbox\\PC\\Downloads\\Facenet_MTCNN_SVM [With Augmentation]\\venv\\haarcascade_frontalface_default.xml")
+haarcascade = cv.CascadeClassifier("haarcascade_frontalface_default.xml")
 
-# Open the camera and start capturing video
-cap = cv.VideoCapture(0)
-
-save_path = 'C:\\Users\\icedl\\Dropbox\\PC\\Downloads\\Facenet_MTCNN_SVM [With Augmentation]\captured_img'  # Replace with your desired save folder path
+save_path = 'captured_img'  # Replace with your desired save folder path
 
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
 num_screenshots = 0
+
+# Open the camera and start capturing video
+cap = cv.VideoCapture(0)
 
 while cap.isOpened():
     # Read a frame from the camera
@@ -48,7 +56,11 @@ while cap.isOpened():
     gray_img = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
     # Detect faces using the Haar cascade classifier
-    faces = haarcascade.detectMultiScale(gray_img, 1.3, 5)
+    faces = haarcascade.detectMultiScale(
+            gray_img, 
+            scaleFactor=1.1, 
+            minNeighbors=3, 
+            minSize=(30, 30))
 
     # Process each detected face
     for x, y, w, h in faces:
@@ -63,11 +75,22 @@ while cap.isOpened():
 
         # Embed the face using FaceNet
         embedding = facenet.embeddings(img)
+        
+        #cbam
+        height, width = 16, 32  # Specify the desired height and width
+        channels = 1  # Grayscale
+        embedded_img = np.reshape(embedding, (-1, height, width, channels))
 
+        torch_tensor = torch.from_numpy(embedded_img).float()
+        with torch.no_grad():
+            output = cbam(torch_tensor)
+        
         # Classify the face using the SVM model
-        ypreds = model.predict_proba(embedding)
+        test_im = output.detach().numpy()
+        ypreds = model.predict_proba(test_im.reshape(test_im.shape[0], -1))
         ypreds_max = np.max(ypreds)
         ypreds_label = np.argmax(ypreds)
+        
         if ypreds_max > threshold:
             face_name = encoder.inverse_transform([ypreds_label])[0]
             # Draw a rectangle around the face and display the name
