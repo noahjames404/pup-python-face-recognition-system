@@ -102,14 +102,14 @@ while cap.isOpened():
                 },
             )
 
-        # Save a screenshot if the number of screenshots is less than 3
-        if num_screenshots < 3:
-            screenshot_name = "screenshot_{}_{}.png".format(face_name, num_screenshots)
-            cv.imwrite(os.path.join(save_path, screenshot_name), frame)
-            num_screenshots += 1
+            # Save a screenshot if the number of screenshots is less than 3
+            if num_screenshots < 3:
+                screenshot_name = "screenshot_{}_{}.png".format(face_name, num_screenshots)
+                cv.imwrite(os.path.join(save_path, screenshot_name), frame)
+                num_screenshots += 1
 
-            # Delay for 1 second before capturing the next screenshot
-            time.sleep(1)
+                # Delay for 1 second before capturing the next screenshot
+                time.sleep(1)
 
             # Draw a rectangle around the face and display the name
             cv.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 5)
