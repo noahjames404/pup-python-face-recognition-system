@@ -1,8 +1,13 @@
 
+import time 
+
 from tkinter import *
 from tkinter import ttk
-from tkinter import PanedWindow, Label, font
+from tkinter import PanedWindow, Label, font 
+from typing import Literal
+from PIL import ImageTk, Image
 
+#start modify
 app_name = "Face Recognition System"
 app_intro = "Welcome Back!"
 app_guidelines = "Please stand still in front of the camera"
@@ -15,8 +20,19 @@ color_fg = "#FCFDFC"
 font_family = "Verdana"
 font_size = 12
 font_style = "normal"
+#end modify
 
-class GUIBuilder:
+
+#constants
+STANDBY = "standby"
+DETECTED = "detected" 
+VERIFY = "verify"
+ 
+
+class GUIBuilder: 
+    def __init__(self):
+        self.state = STANDBY
+
     def AttachLabel(self,panel:PanedWindow, label:StringVar, bgc=color_bg,fgc=color_fg) -> Label:
         l = Label(panel,text=label,bg=bgc,fg=fgc,font=self.Font())
         panel.add(l)
@@ -27,26 +43,35 @@ class GUIBuilder:
         container.add(panel)
         return panel
 
-    def Build(self):
+    def Build(self) -> Tk:
         root=Tk()
         root.title(app_name)
-        root.geometry(frame_size)   
+        root.geometry(frame_size)    
+        root.configure(bg=color_bg)
 
-        pmain = PanedWindow(orient=VERTICAL,bg=color_bg)
-        pmain.pack(fill=BOTH)
+        pmain = PanedWindow(orient=VERTICAL,bg=color_bg) 
+        pmain.pack(fill=BOTH,padx=10,pady=40)
 
         self.Header(pmain)
-        self.Body(pmain) 
-        
-        root.mainloop();
+        self.Body(pmain)  
+
+        self.root = root
+        return Tk
+    
+    def Run(self):
+        self.root.mainloop()
     
     def Font(self,fsize=font_size,fweight=font_style) -> font.Font:
         return font.Font(family=font_family, size=fsize, weight=fweight)
 
     def Header(self,container:PanedWindow) -> PanedWindow :
         panel = self.AttachPanel(container,bgc=color_bg)
-        self.AttachLabel(panel, app_name) 
-        self.AttachLabel(panel, app_intro) 
+        h1 = self.AttachLabel(panel, app_name)
+        h1["font"] = self.Font(9)
+
+        h2 = self.AttachLabel(panel, app_intro) 
+        h2["font"] = self.Font(20,"bold")
+
         self.AttachLabel(panel, app_guidelines) 
         panel["orient"] = VERTICAL 
 
@@ -55,24 +80,71 @@ class GUIBuilder:
         panel["orient"] = HORIZONTAL
         panel.pack(fill=BOTH) 
 
-        pcam = self.AttachPanel(panel,bgc=color_bg) 
-        pcam.pack(side=LEFT, fill=BOTH, expand=1)
-        pcam_label = self.AttachLabel(pcam,"PCAM") 
+        pcam = self.AttachPanel(panel,bgc="#fff") 
+        pcam.pack(side=LEFT, fill=BOTH, expand=1) 
 
-        pdetails = self.AttachPanel(panel,bgc=color_bg) 
+        pdetails = self.AttachPanel(panel,bgc=color_fg) 
         pdetails["orient"] = VERTICAL
-        pdetails.pack(side=LEFT, expand=1)
-        pdetails_label = self.AttachLabel(pdetails,"Stand By") 
-        pdetails_label = self.AttachLabel(pdetails,"Henry Sy.") 
-        pdetails_label = self.AttachLabel(pdetails,"0935-380-2346") 
-        pdetails_label = self.AttachLabel(pdetails,"grade & section") 
-        pdetails_label = self.AttachLabel(pdetails,"4-Archimedes") 
-        pdetails_label = self.AttachLabel(pdetails,"guardian") 
-        pdetails_label = self.AttachLabel(pdetails,"rose marie") 
+        pdetails.pack(side=LEFT, fill=BOTH)
+
+        pinfo = self.AttachPanel(panel,"#fff")
+        pinfo.pack(padx=40)
+ 
+        self.info_status = self.FormatLabelInfo(pinfo,"Stand By")
+        self.info_status.configure(font=self.Font(15,"bold"))  
+
+        self.info_student = self.FormatLabelInfo(pinfo,"----")
+         
+        self.FormatLabelInfo(pinfo,"GRADE & SECTION")
+        
+        self.info_gs = self.FormatLabelInfo(pinfo,"----")
+        self.FormatLabelInfo(pinfo,"GUARDIAN")
+        self.info_guardian = self.FormatLabelInfo(pinfo,"----")
+        self.info_contact = self.FormatLabelInfo(pinfo,"----") 
+
+        img = self.LoadImage(pdetails,"./assets/img/logo.png")
+        img.pack()
+ 
+    def FormatLabelInfo(self,panel:PanedWindow,text) -> Label:
+        label = self.AttachLabel(panel,text)
+        label["bg"] = color_fg
+        label["fg"] = "#333" 
+        label.pack(padx=30)
+        return label
+    
+    def LoadImage(self,container:PanedWindow,asset_path:str) -> Label:
+        image = Image.open(asset_path)
+        # image.resize((100,100))
+        photo = ImageTk.PhotoImage(image)
+        label = Label(container,image=photo) 
+        return label
+
+    
+    def UpdateState(self,state:Literal["standby","verify","detected"]):
+        self.state = state
+        if(state == STANDBY):
+            self.info_status["text"] = "Stand By"
+            self.info_status["fg"] = "#f1c40f"
+            self.info_student["text"] = "----"
+            self.info_gs["text"] = "----"
+            self.info_guardian["text"] = "----"
+            self.info_contact["text"] = "----"
+        if(state == DETECTED):
+            self.info_status["text"] = "Welcome Back!"
+            self.info_status["fg"] = "#2ecc71"
+        if(state == VERIFY):
+            self.info_status["text"] = "Verifying..."
+            self.info_status["fg"] = "#3498db"
+
+
  
 
 gui = GUIBuilder()
-gui.Build();
+
+root = gui.Build()   
+gui.UpdateState(VERIFY)
+
+gui.Run()
 
 
 
