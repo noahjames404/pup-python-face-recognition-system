@@ -144,9 +144,7 @@ class GUIBuilder:
     def ResizeImage(self,img:Image.Image) -> Image.Image:
         # Get the desired width and height based on the label size
         label_width = self.pcam_label.winfo_width()
-        label_height = self.pcam_label.winfo_height()
-
-        print(f"{label_width} {label_height}")
+        label_height = self.pcam_label.winfo_height() 
          
         image_width, image_height = img.size
         aspect_ratio = image_width / image_height
@@ -167,17 +165,28 @@ class GUIBuilder:
         self.state = state
         if(state == STANDBY):
             self.info_status["text"] = "Stand By"
-            self.info_status["fg"] = "#f1c40f"
-            self.info_student["text"] = "----"
-            self.info_gs["text"] = "----"
-            self.info_guardian["text"] = "----"
-            self.info_contact["text"] = "----"
+            self.info_status["fg"] = "#f1c40f" 
+            self.ClearInfo()
         if(state == DETECTED):
             self.info_status["text"] = "Welcome Back!"
             self.info_status["fg"] = "#2ecc71"
         if(state == VERIFY):
             self.info_status["text"] = "Verifying..."
             self.info_status["fg"] = "#3498db"
+            self.ClearInfo()
+
+    def ClearInfo(self):
+        self.info_student["text"] = "----"
+        self.info_gs["text"] = "----"
+        self.info_guardian["text"] = "----"
+        self.info_contact["text"] = "----"
+
+    def UpdateInfo(self,student,gs,guardian,contact): 
+        self.info_student["text"] = student
+        self.info_gs["text"] = gs
+        self.info_guardian["text"] = guardian
+        self.info_contact["text"] = contact
+
 
     def UpdateFrame(self,frame):
         cv2image= cv.cvtColor(frame,cv.COLOR_BGR2RGB)
