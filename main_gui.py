@@ -80,15 +80,23 @@ class GUIBuilder:
         panel["orient"] = HORIZONTAL
         panel.pack(fill=BOTH) 
 
+        self.Footer(container)
+        
+
         pcam = self.AttachPanel(panel,bgc="#fff") 
-        pcam.pack(side=LEFT, fill=BOTH, expand=1) 
+        pcam.pack(side=LEFT, fill=BOTH, expand=1,padx=(10,0),pady=(0,10)) 
 
-        pdetails = self.AttachPanel(panel,bgc=color_fg) 
+        pdetails = self.AttachPanel(panel,bgc=color_bg)  
         pdetails["orient"] = VERTICAL
-        pdetails.pack(side=LEFT, fill=BOTH)
+        pdetails.pack(side=TOP,padx=10,pady=(0,10))
 
-        pinfo = self.AttachPanel(panel,"#fff")
-        pinfo.pack(padx=40)
+        canvas = self.LoadImage(pdetails,"./assets/img/logo.png") 
+        canvas.pack(pady=(0,10))
+
+
+        pinfo = self.AttachPanel(pdetails,"#fff")
+        pinfo["orient"] = VERTICAL
+        pinfo.pack(padx=(10,10),fill=X) 
  
         self.info_status = self.FormatLabelInfo(pinfo,"Stand By")
         self.info_status.configure(font=self.Font(15,"bold"))  
@@ -102,22 +110,32 @@ class GUIBuilder:
         self.info_guardian = self.FormatLabelInfo(pinfo,"----")
         self.info_contact = self.FormatLabelInfo(pinfo,"----") 
 
-        img = self.LoadImage(pdetails,"./assets/img/logo.png")
-        img.pack()
+    def Footer(self,container:PanedWindow):
+        pfooter = self.AttachPanel(container,bgc=color_bg)
+        pfooter.pack(side=BOTTOM,fill=BOTH,padx=10,pady=(0,10))
+
+        pfooter = self.AttachLabel(pfooter,"00:00:00",bgc=color_bg)
+        pfooter.pack(fill=BOTH,side=LEFT)
+
  
     def FormatLabelInfo(self,panel:PanedWindow,text) -> Label:
         label = self.AttachLabel(panel,text)
         label["bg"] = color_fg
         label["fg"] = "#333" 
-        label.pack(padx=30)
+        label.pack(fill=X)
         return label
     
-    def LoadImage(self,container:PanedWindow,asset_path:str) -> Label:
-        image = Image.open(asset_path)
-        # image.resize((100,100))
+    def LoadImage(self,container:PanedWindow,asset_path:str) -> Canvas:
+        canvas = Canvas(container,bg=color_bg,highlightthickness=0,width=250,height=300)
+        
+        logo_size = (250,350)
+
+        image = Image.open(asset_path) 
+        image = image.resize(logo_size)
         photo = ImageTk.PhotoImage(image)
-        label = Label(container,image=photo) 
-        return label
+        canvas.create_image(logo_size[0]/2,logo_size[1]/2-35,image=photo)
+        canvas.image = photo
+        return canvas
 
     
     def UpdateState(self,state:Literal["standby","verify","detected"]):
@@ -137,6 +155,7 @@ class GUIBuilder:
             self.info_status["fg"] = "#3498db"
 
 
+    
  
 
 gui = GUIBuilder()
