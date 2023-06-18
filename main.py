@@ -11,6 +11,9 @@ from keras_facenet import FaceNet
 from sklearn.preprocessing import LabelEncoder
 from typing import NamedTuple
 from threading import *
+from queue import Queue
+from main_gui import GUIBuilder
+from pprint import pprint
 
 sys.path.append("External-Attention-pytorch")
 from model.attention.CBAM import CBAMBlock
@@ -43,8 +46,7 @@ save_path = "captured_img"  # Replace with your desired save folder path
 if not os.path.exists(save_path):
     os.makedirs(save_path)
  
-# Open the camera and start capturing video
-cap = cv.VideoCapture(0)
+
 
 class Vector4(NamedTuple):
     """a docstring"""
@@ -57,12 +59,31 @@ class App:
 
     def __init__(self):
         self.num_screenshots = 0
-        self.is_taking_screenshot = False;
+        self.is_taking_screenshot = False; 
+        self.queue_frame = Queue(maxsize=20) 
+        self.queue_stop = False;
+    
+    def Execute(self)->Thread:
+        t = Thread(target=lambda:self.ErrorHandler())
+        t.start()
+        return t
+    
+    def ErrorHandler(self):
+        try:
+            self.ExecuteAsync()
+        except:
+            self.queue_frame.put(None) 
 
     def ExecuteAsync(self):
-        while cap.isOpened():
+        # Open the camera and start capturing video
+        self.cap = cv.VideoCapture(0)
+
+        while self.cap.isOpened():
+            if self.queue_stop:
+                break
+        
             # Read a frame from the camera
-            _, frame = cap.read()
+            _, frame = self.cap.read()
 
             # Convert the image color to RGB
             rgb_img = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
@@ -73,22 +94,20 @@ class App:
             # Detect faces using the Haar cascade classifier
             faces = haarcascade.detectMultiScale(
                 gray_img, scaleFactor=1.1, minNeighbors=6, minSize=(30, 30)
-            )
+            ) 
 
             # Process each detected face
+            face_name = None
             for x, y, w, h in faces:
                 vector4 = Vector4(x,y,w,h)
-                self.ProcessFaces(vector4,rgb_img,frame)
-                
+                face_name = self.ProcessFaces(vector4,rgb_img,frame)
 
-            # Display the result on the screen
-            cv.imshow("Face Recognition:", frame)
+            if(~self.queue_frame.full()):
+                self.queue_frame.put((face_name,frame)) 
 
-            # Exit the loop if the 'q' key is pressed
-            if cv.waitKey(1) & 0xFF == ord("q"):
-                break
+            
     
-    def ProcessFaces(self,vector4,rgb_img,frame):
+    def ProcessFaces(self,vector4,rgb_img,frame) -> str:
         img = rgb_img[vector4.y : vector4.y + vector4.h, vector4.x : vector4.x + vector4.w]
 
         # Resize the face region to 160x160
@@ -128,6 +147,8 @@ class App:
         else:
             self.HighlightFace(vector4,frame,"not registered",(0,0,255),(0,0,255))
 
+        return ypreds_label
+
     def HighlightFace(self,vector4,frame,face_name,bg,fg):
         cv.rectangle(frame, (vector4.x, vector4.y), (vector4.x + vector4.w, vector4.y + vector4.h), bg, 5)
         cv.putText(
@@ -159,8 +180,43 @@ class App:
         time.sleep(1)
         self.is_taking_screenshot = False
 
-App().ExecuteAsync()
+    def CleanUp(self):
+        self.cap.release()
+        cv.destroyAllWindows()
 
-# Release the resources
-cap.release()
-cv.destroyAllWindows()
+
+
+gui = GUIBuilder()
+root = gui.Build()
+app = App()
+
+app_thread = app.Execute()
+
+root.protocol("WM_DELETE_WINDOW", lambda:app.queue_frame.put(None))
+
+try:
+    while True:
+        info = app.queue_frame.get(timeout=5)
+
+        if info is None: 
+            root.destroy()
+            app.queue_stop = True
+            break 
+
+        gui.UpdateFrame(info[1])
+
+        if info[0] is None:
+            gui.UpdateState("standby")
+        else:
+            gui.UpdateState("detected")
+    
+        root.update_idletasks()
+        root.update()
+except:
+    app.queue_frame.put(None)
+
+app_thread.join()
+app.CleanUp()
+
+#todo fix image not showing
+#todo integrate with db

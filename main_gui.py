@@ -85,7 +85,9 @@ class GUIBuilder:
 
         pcam = self.AttachPanel(panel,bgc="#fff") 
         pcam.pack(side=LEFT, fill=BOTH, expand=1,padx=(10,0),pady=(0,10)) 
-        self.pcam = pcam
+        
+        self.pcam_label = self.AttachLabel(pcam,"")
+        self.pcam_label.pack(fill=BOTH)
 
         pdetails = self.AttachPanel(panel,bgc=color_bg)  
         pdetails["orient"] = VERTICAL
@@ -159,8 +161,8 @@ class GUIBuilder:
         cv2image= cv.cvtColor(frame,cv.COLOR_BGR2RGB)
         img = Image.fromarray(cv2image) 
         photo = ImageTk.PhotoImage(image = img) 
-        self.pcam.configure(image=photo)
-
+        self.pcam_label.configure(image=photo)
+    
 
     
  
