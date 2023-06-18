@@ -6,6 +6,7 @@ from queue import Queue
 from typing import NamedTuple
 from cachetools import cached, TTLCache
 from datetime import timedelta
+import traceback
 
 class StudentResponse(NamedTuple):
     registration_no:str
@@ -37,18 +38,23 @@ class API():
         if id is None:
             print("Error Handled: Invalid ID type of `None`")
             return None
-        res = self.supabase.table("user").select("*").eq("registration_no",id).execute() 
-        if len(res["data"]) != 0:
-             return StudentResponse(
-                 res["data"][0]["registration_no"],
-                 res["data"][0]["name"],
-                 res["data"][0]["grade"],
-                 res["data"][0]["section"],
-                 res["data"][0]["guardian"],
-                 res["data"][0]["phone"]
-             )
-        else:
-            return None
+        
+        try:
+            res = self.supabase.table("user").select("*").eq("registration_no",id).execute() 
+            if len(res["data"]) != 0:
+                 return StudentResponse(
+                     res["data"][0]["registration_no"],
+                     res["data"][0]["name"],
+                     res["data"][0]["grade"],
+                     res["data"][0]["section"],
+                     res["data"][0]["guardian"],
+                     res["data"][0]["phone"]
+                 )
+            else:
+                return None
+        except:
+            print("Error Handled"+traceback.format_exc())
+
         
 
 # setup

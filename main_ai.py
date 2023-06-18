@@ -16,7 +16,7 @@ from threading import *
 from queue import Queue
 from main_gui import GUIBuilder
 from pprint import pprint
-import traceback
+import traceback 
 
 sys.path.append("External-Attention-pytorch")
 from model.attention.CBAM import CBAMBlock

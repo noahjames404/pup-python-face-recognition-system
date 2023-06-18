@@ -1,11 +1,14 @@
+from env import InitEnv 
 from main_ai import App 
 from main_gui import GUIBuilder, STANDBY, VERIFY, DETECTED
 from main_utils import GetDateTime, ExtractStudentID
 from main_api import API, StudentResponse
 from pprint import pprint
 
+
 print("App: Initializing")
 
+InitEnv()
 gui = GUIBuilder()
 api = API()
 app = App()
