@@ -7,6 +7,8 @@ import cv2 as cv
 import numpy as np
 import requests
 import torch
+import datetime
+
 from keras_facenet import FaceNet
 from sklearn.preprocessing import LabelEncoder
 from typing import NamedTuple
@@ -71,8 +73,10 @@ class App:
     def ErrorHandler(self):
         try:
             self.ExecuteAsync()
-        except:
-            self.queue_frame.put(None) 
+        except Exception as e:
+            self.queue_stop = True
+            print(e)
+             
 
     def ExecuteAsync(self):
         # Open the camera and start capturing video
@@ -80,6 +84,7 @@ class App:
 
         while self.cap.isOpened():
             if self.queue_stop:
+                print("App: Closing App Thread")
                 break
         
             # Read a frame from the camera
@@ -180,11 +185,22 @@ class App:
         time.sleep(1)
         self.is_taking_screenshot = False
 
-    def CleanUp(self):
+    def CleanUp(self): 
+        self.queue_stop = False
         self.cap.release()
         cv.destroyAllWindows()
 
+def get_current_datetime():
+    # Get the current date and time
+    current_datetime = datetime.datetime.now()
 
+    # Remove the microsecond component
+    current_datetime = current_datetime.replace(microsecond=0)
+
+    return current_datetime
+
+
+print("App: Initializing")
 
 gui = GUIBuilder()
 root = gui.Build()
@@ -196,14 +212,16 @@ root.protocol("WM_DELETE_WINDOW", lambda:app.queue_frame.put(None))
 
 try:
     while True:
-        info = app.queue_frame.get(timeout=5)
+        info = app.queue_frame.get()
 
         if info is None: 
             root.destroy()
             app.queue_stop = True
+            print("App: Closing Main Thread")
             break 
 
         gui.UpdateFrame(info[1])
+        gui.UpdateTime(get_current_datetime())
 
         if info[0] is None:
             gui.UpdateState("standby")
@@ -212,10 +230,13 @@ try:
     
         root.update_idletasks()
         root.update()
-except:
-    app.queue_frame.put(None)
+except Exception as e:
+    app.queue_stop = True
+    print(e)
 
 app_thread.join()
+
+print("App: Resource Clean Up")
 app.CleanUp()
 
 #todo fix image not showing

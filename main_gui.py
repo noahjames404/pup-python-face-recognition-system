@@ -51,7 +51,7 @@ class GUIBuilder:
         root.configure(bg=color_bg)
 
         pmain = PanedWindow(orient=VERTICAL,bg=color_bg) 
-        pmain.pack(fill=BOTH,padx=10,pady=40)
+        pmain.pack(fill=BOTH,padx=10,pady=10)
 
         self.Header(pmain)
         self.Body(pmain)  
@@ -85,16 +85,17 @@ class GUIBuilder:
 
         pcam = self.AttachPanel(panel,bgc="#fff") 
         pcam.pack(side=LEFT, fill=BOTH, expand=1,padx=(10,0),pady=(0,10)) 
+        pcam.pack_propagate(0)
         
         self.pcam_label = self.AttachLabel(pcam,"")
-        self.pcam_label.pack(fill=BOTH)
+        self.pcam_label.pack(fill=BOTH,expand=1)
 
         pdetails = self.AttachPanel(panel,bgc=color_bg)  
         pdetails["orient"] = VERTICAL
         pdetails.pack(side=TOP,padx=10,pady=(0,10))
 
         canvas = self.LoadImage(pdetails,"./assets/img/logo.png") 
-        canvas.pack(pady=(0,10))
+        canvas.pack()
 
 
         pinfo = self.AttachPanel(pdetails,"#fff")
@@ -117,8 +118,8 @@ class GUIBuilder:
         pfooter = self.AttachPanel(container,bgc=color_bg)
         pfooter.pack(side=BOTTOM,fill=BOTH,padx=10,pady=(0,10))
 
-        pfooter = self.AttachLabel(pfooter,"00:00:00",bgc=color_bg)
-        pfooter.pack(fill=BOTH,side=LEFT)
+        self.pfooter_label = self.AttachLabel(pfooter,"00:00:00",bgc=color_bg)
+        self.pfooter_label.pack(fill=BOTH,side=LEFT)
 
  
     def FormatLabelInfo(self,panel:PanedWindow,text) -> Label:
@@ -129,7 +130,7 @@ class GUIBuilder:
         return label
     
     def LoadImage(self,container:PanedWindow,asset_path:str) -> Canvas:
-        canvas = Canvas(container,bg=color_bg,highlightthickness=0,width=250,height=300)
+        canvas = Canvas(container,bg=color_bg,highlightthickness=0,width=250,height=275)
         
         logo_size = (250,350)
 
@@ -140,6 +141,27 @@ class GUIBuilder:
         canvas.image = photo
         return canvas
 
+    def ResizeImage(self,img:Image.Image) -> Image.Image:
+        # Get the desired width and height based on the label size
+        label_width = self.pcam_label.winfo_width()
+        label_height = self.pcam_label.winfo_height()
+
+        print(f"{label_width} {label_height}")
+         
+        image_width, image_height = img.size
+        aspect_ratio = image_width / image_height
+ 
+        if label_width / label_height < aspect_ratio:
+            new_width = label_width
+            new_height = int(label_width / aspect_ratio)
+        else:
+            new_width = int(label_height * aspect_ratio)
+            new_height = label_height 
+            
+        if(new_width == 0 or new_height == 0):
+            new_width = 1
+            new_height = 1
+        return img.resize((new_width, new_height), Image.ANTIALIAS) 
     
     def UpdateState(self,state:Literal["standby","verify","detected"]):
         self.state = state
@@ -160,8 +182,14 @@ class GUIBuilder:
     def UpdateFrame(self,frame):
         cv2image= cv.cvtColor(frame,cv.COLOR_BGR2RGB)
         img = Image.fromarray(cv2image) 
-        photo = ImageTk.PhotoImage(image = img) 
-        self.pcam_label.configure(image=photo)
+
+        img = self.ResizeImage(img)
+ 
+        self.photo = ImageTk.PhotoImage(image = img) 
+        self.pcam_label.configure(image=self.photo)
+
+    def UpdateTime(self,time):
+        self.pfooter_label["text"] = time
     
 
     
