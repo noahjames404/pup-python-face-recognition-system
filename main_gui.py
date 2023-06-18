@@ -6,6 +6,7 @@ from tkinter import ttk
 from tkinter import PanedWindow, Label, font 
 from typing import Literal
 from PIL import ImageTk, Image
+import cv2 as cv
 
 #start modify
 app_name = "Face Recognition System"
@@ -54,9 +55,8 @@ class GUIBuilder:
 
         self.Header(pmain)
         self.Body(pmain)  
-
-        self.root = root
-        return Tk
+ 
+        return root
     
     def Run(self):
         self.root.mainloop()
@@ -85,6 +85,7 @@ class GUIBuilder:
 
         pcam = self.AttachPanel(panel,bgc="#fff") 
         pcam.pack(side=LEFT, fill=BOTH, expand=1,padx=(10,0),pady=(0,10)) 
+        self.pcam = pcam
 
         pdetails = self.AttachPanel(panel,bgc=color_bg)  
         pdetails["orient"] = VERTICAL
@@ -96,7 +97,7 @@ class GUIBuilder:
 
         pinfo = self.AttachPanel(pdetails,"#fff")
         pinfo["orient"] = VERTICAL
-        pinfo.pack(padx=(10,10),fill=X) 
+        pinfo.pack(padx=(10,10),pady=(0,10),fill=BOTH,expand=1) 
  
         self.info_status = self.FormatLabelInfo(pinfo,"Stand By")
         self.info_status.configure(font=self.Font(15,"bold"))  
@@ -154,16 +155,22 @@ class GUIBuilder:
             self.info_status["text"] = "Verifying..."
             self.info_status["fg"] = "#3498db"
 
+    def UpdateFrame(self,frame):
+        cv2image= cv.cvtColor(frame,cv.COLOR_BGR2RGB)
+        img = Image.fromarray(cv2image) 
+        photo = ImageTk.PhotoImage(image = img) 
+        self.pcam.configure(image=photo)
+
 
     
  
+#SETUP
+# gui = GUIBuilder()
 
-gui = GUIBuilder()
+# root = gui.Build()   
+# gui.UpdateState(VERIFY)
 
-root = gui.Build()   
-gui.UpdateState(VERIFY)
-
-gui.Run()
+# root.mainloop()
 
 
 

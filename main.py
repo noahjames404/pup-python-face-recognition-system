@@ -9,6 +9,8 @@ import requests
 import torch
 from keras_facenet import FaceNet
 from sklearn.preprocessing import LabelEncoder
+from typing import NamedTuple
+from threading import *
 
 sys.path.append("External-Attention-pytorch")
 from model.attention.CBAM import CBAMBlock
@@ -40,31 +42,54 @@ save_path = "captured_img"  # Replace with your desired save folder path
 
 if not os.path.exists(save_path):
     os.makedirs(save_path)
-
-num_screenshots = 0
-
+ 
 # Open the camera and start capturing video
 cap = cv.VideoCapture(0)
 
-while cap.isOpened():
-    # Read a frame from the camera
-    _, frame = cap.read()
+class Vector4(NamedTuple):
+    """a docstring"""
+    x:any
+    y:any
+    w:any
+    h:any
 
-    # Convert the image color to RGB
-    rgb_img = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+class App:
 
-    # Convert the RGB into gray since haarcascade requires gray images
-    gray_img = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+    def __init__(self):
+        self.num_screenshots = 0
+        self.is_taking_screenshot = False;
 
-    # Detect faces using the Haar cascade classifier
-    faces = haarcascade.detectMultiScale(
-        gray_img, scaleFactor=1.1, minNeighbors=6, minSize=(30, 30)
-    )
+    def ExecuteAsync(self):
+        while cap.isOpened():
+            # Read a frame from the camera
+            _, frame = cap.read()
 
-    # Process each detected face
-    for x, y, w, h in faces:
-        # Extract the face region from the image
-        img = rgb_img[y : y + h, x : x + w]
+            # Convert the image color to RGB
+            rgb_img = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+
+            # Convert the RGB into gray since haarcascade requires gray images
+            gray_img = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+
+            # Detect faces using the Haar cascade classifier
+            faces = haarcascade.detectMultiScale(
+                gray_img, scaleFactor=1.1, minNeighbors=6, minSize=(30, 30)
+            )
+
+            # Process each detected face
+            for x, y, w, h in faces:
+                vector4 = Vector4(x,y,w,h)
+                self.ProcessFaces(vector4,rgb_img,frame)
+                
+
+            # Display the result on the screen
+            cv.imshow("Face Recognition:", frame)
+
+            # Exit the loop if the 'q' key is pressed
+            if cv.waitKey(1) & 0xFF == ord("q"):
+                break
+    
+    def ProcessFaces(self,vector4,rgb_img,frame):
+        img = rgb_img[vector4.y : vector4.y + vector4.h, vector4.x : vector4.x + vector4.w]
 
         # Resize the face region to 160x160
         img = cv.resize(img, (160, 160))
@@ -92,58 +117,49 @@ while cap.isOpened():
 
         if ypreds_max > threshold:
             face_name = encoder.inverse_transform([ypreds_label])[0]
-
-            req = requests.post(
-                "https://facedetection-1-s8245812.deta.app/sms/send",
-                json={
-                    "send_to": "+639761279041",
-                    "body": "Helloooo",
-                    "name": face_name,
-                },
-            )
+            self.NotifyContact("+639761279041",face_name,"is this your child?!")
 
             # Save a screenshot if the number of screenshots is less than 3
-            if num_screenshots < 3:
-                screenshot_name = "screenshot_{}_{}.png".format(face_name, num_screenshots)
-                cv.imwrite(os.path.join(save_path, screenshot_name), frame)
-                num_screenshots += 1
+            if self.num_screenshots < 3 & ~self.is_taking_screenshot:
+                self.is_taking_screenshot = True
+                Thread(target=lambda:self.TakeNSaveScreenshotAsync(frame,face_name)).start()
 
-                # Delay for 1 second before capturing the next screenshot
-                time.sleep(1)
-
-            # Draw a rectangle around the face and display the name
-            cv.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 5)
-            cv.putText(
-                frame,
-                face_name,
-                (x, y - 10),
-                cv.FONT_HERSHEY_SIMPLEX,
-                1,
-                (0, 255, 255),
-                2,
-                cv.LINE_AA,
-            )
+            self.HighlightFace(vector4,frame,face_name,(0,255,0),(0,255,255))
         else:
-            face_name = "not registered"
-            # Draw a rectangle around the face and display the name
-            cv.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 5)
-            cv.putText(
-                frame,
-                face_name,
-                (x, y - 10),
-                cv.FONT_HERSHEY_SIMPLEX,
-                1,
-                (0, 0, 255),
-                2,
-                cv.LINE_AA,
-            )
+            self.HighlightFace(vector4,frame,"not registered",(0,0,255),(0,0,255))
 
-    # Display the result on the screen
-    cv.imshow("Face Recognition:", frame)
+    def HighlightFace(self,vector4,frame,face_name,bg,fg):
+        cv.rectangle(frame, (vector4.x, vector4.y), (vector4.x + vector4.w, vector4.y + vector4.h), bg, 5)
+        cv.putText(
+            frame,
+            face_name,
+            (vector4.x, vector4.y - 10),
+            cv.FONT_HERSHEY_SIMPLEX,
+            1,
+            fg,
+            2,
+            cv.LINE_AA,
+        )
 
-    # Exit the loop if the 'q' key is pressed
-    if cv.waitKey(1) & 0xFF == ord("q"):
-        break
+    def NotifyContact(self,send_to,name,body):
+        req = requests.post(
+            "https://facedetection-1-s8245812.deta.app/sms/send",
+            json={
+                "send_to": send_to,
+                "body": body,
+                "name": name,
+            },
+        )
+
+    def TakeNSaveScreenshotAsync(self,frame,face_name):
+        screenshot_name = "screenshot_{}_{}.png".format(face_name, self.num_screenshots)
+        cv.imwrite(os.path.join(save_path, screenshot_name), frame)
+        self.num_screenshots+=1
+        # Delay for 1 second before capturing the next screenshot
+        time.sleep(1)
+        self.is_taking_screenshot = False
+
+App().ExecuteAsync()
 
 # Release the resources
 cap.release()
