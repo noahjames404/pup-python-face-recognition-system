@@ -47,7 +47,7 @@ try:
                     res.name,
                     f"{res.grade} {res.section}",
                     res.guardian,
-                    res.phone 
+                    ""
                 )  
     
         root.update_idletasks()

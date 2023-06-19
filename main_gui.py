@@ -10,10 +10,10 @@ import cv2 as cv
 
 #start modify
 app_name = "Face Recognition System"
-app_intro = "Welcome Back!"
+app_intro = "Pio Del Pilar Elementary School"
 app_guidelines = "Please stand still in front of the camera"
 
-frame_size = "500x400" 
+frame_size = "720x680" 
 color_bg = "#024BAA"
 color_accent = "#004AAF"
 color_fg = "#FCFDFC" 
@@ -21,6 +21,11 @@ color_fg = "#FCFDFC"
 font_family = "Verdana"
 font_size = 12
 font_style = "normal"
+
+message_verify = "Verifying..."
+message_standby = "Stand By"
+message_detected = "Stay Safe!"
+
 #end modify
 
 
@@ -66,14 +71,30 @@ class GUIBuilder:
 
     def Header(self,container:PanedWindow) -> PanedWindow :
         panel = self.AttachPanel(container,bgc=color_bg)
+        panel["orient"] = HORIZONTAL 
+        panel.pack(side=TOP)
+
+        canvas = self.LoadImage(
+            container=panel,
+            asset_path="assets/img/school_seal.jpg",
+            canvas_size=(100,100),
+            logo_size=(100,100),
+            logo_offset=(0,0)
+        )
+
+        canvas.pack(side=LEFT)
+
         h1 = self.AttachLabel(panel, app_name)
         h1["font"] = self.Font(9)
+        h1.pack()
 
         h2 = self.AttachLabel(panel, app_intro) 
         h2["font"] = self.Font(20,"bold")
+        h2.pack()
 
-        self.AttachLabel(panel, app_guidelines) 
-        panel["orient"] = VERTICAL 
+        h3 = self.AttachLabel(panel, app_guidelines) 
+        h3.pack()
+
 
     def Body(self,container:PanedWindow) -> PanedWindow :
         panel = self.AttachPanel(container,bgc=color_bg) 
@@ -93,8 +114,14 @@ class GUIBuilder:
         pdetails = self.AttachPanel(panel,bgc=color_bg)  
         pdetails["orient"] = VERTICAL
         pdetails.pack(side=TOP,padx=10,pady=(0,10))
-
-        canvas = self.LoadImage(pdetails,"./assets/img/logo.png") 
+ 
+        canvas = self.LoadImage(
+            pdetails,
+            "./assets/img/logo.png",
+            canvas_size=(250,275),
+            logo_size=(250,350),
+            logo_offset=(0,-35)
+        ) 
         canvas.pack()
 
 
@@ -129,15 +156,14 @@ class GUIBuilder:
         label.pack(fill=X)
         return label
     
-    def LoadImage(self,container:PanedWindow,asset_path:str) -> Canvas:
-        canvas = Canvas(container,bg=color_bg,highlightthickness=0,width=250,height=275)
-        
-        logo_size = (250,350)
+    def LoadImage(self,container:PanedWindow,asset_path:str,canvas_size,logo_size,logo_offset) -> Canvas:
 
+        canvas = Canvas(container,bg=color_bg,highlightthickness=0,width=canvas_size[0],height=canvas_size[1])
+         
         image = Image.open(asset_path) 
         image = image.resize(logo_size)
         photo = ImageTk.PhotoImage(image)
-        canvas.create_image(logo_size[0]/2,logo_size[1]/2-35,image=photo)
+        canvas.create_image(logo_size[0]/2+logo_offset[0],logo_size[1]/2+logo_offset[1],image=photo)
         canvas.image = photo
         return canvas
 
@@ -164,14 +190,14 @@ class GUIBuilder:
     def UpdateState(self,state:Literal["standby","verify","detected"]):
         self.state = state
         if(state == STANDBY):
-            self.info_status["text"] = "Stand By"
+            self.info_status["text"] = message_standby
             self.info_status["fg"] = "#f1c40f" 
             self.ClearInfo()
         if(state == DETECTED):
-            self.info_status["text"] = "Welcome Back!"
+            self.info_status["text"] = message_detected
             self.info_status["fg"] = "#2ecc71"
         if(state == VERIFY):
-            self.info_status["text"] = "Verifying..."
+            self.info_status["text"] = message_verify
             self.info_status["fg"] = "#3498db"
             self.ClearInfo()
 
@@ -179,7 +205,7 @@ class GUIBuilder:
         self.info_student["text"] = "----"
         self.info_gs["text"] = "----"
         self.info_guardian["text"] = "----"
-        self.info_contact["text"] = "----"
+        self.info_contact["text"] = ""
 
     def UpdateInfo(self,student,gs,guardian,contact): 
         self.info_student["text"] = student
