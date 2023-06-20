@@ -76,7 +76,7 @@ class GUIBuilder:
 
         canvas = self.LoadImage(
             container=panel,
-            asset_path="assets/img/school_seal.jpg",
+            asset_path="assets/img/school_seal.png",
             canvas_size=(100,100),
             logo_size=(100,100),
             logo_offset=(0,0)
