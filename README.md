@@ -14,7 +14,7 @@ Developed for Elementary Schools and communities alike to monitor & track their 
 
 - Install required dependencies
 ```
-    pip install "./setup.sh"
+    "./setup.sh"
 ```
 
 - duplicate `env.py.example` file inside the project, and rename it to `env.py`. Setup the appropriate API by navigating to your Supabase Database, Project Settings, API Settings. 
